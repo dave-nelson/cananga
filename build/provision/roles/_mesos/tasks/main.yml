@@ -1,0 +1,16 @@
+# Install Mesos (Mesosphere version)
+# http://mesosphere.com/docs/getting-started/datacenter/install/
+---
+- name: Add the Mesosphere key for Apt
+  apt_key: >
+    keyserver=hkp://keyserver.ubuntu.com:80
+    id=E56151BF
+
+- name: Add the Mesosphere Apt repository to apt/sources
+  lineinfile: >
+    dest=/etc/apt/sources.list.d/mesosphere.list
+    create=yes
+    line='deb http://repos.mesosphere.io/ubuntu trusty main'
+
+- name: Install Mesos
+  apt: name=mesos update_cache=yes force=yes

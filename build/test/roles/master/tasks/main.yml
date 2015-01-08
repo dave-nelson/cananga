@@ -1,0 +1,10 @@
+# Tests: master role
+---
+- name: Test that the mesos-master service has been configured
+  command: service mesos-master status
+
+- name: Test that the mesos-slave service auto-start has been disabled
+  command: test -f /etc/init/mesos-slave.override
+
+- name: Test that the Marathon service is available
+  command: service marathon status

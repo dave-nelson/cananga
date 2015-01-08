@@ -1,0 +1,16 @@
+# Configure instance as a Mesos cluster master.
+---
+- name: Disable the Mesos slave daemon
+  lineinfile: >
+    dest=/etc/init/mesos-slave.override
+    create=yes
+    line='manual'
+
+- name: Install Marathon from Mesosphere
+  apt: name=marathon update_cache=yes cache_valid_time=60 force=yes
+
+- name: Configure Marathon task launch timeout (5mins, same as Mesos)
+  lineinfile: >
+    dest=/etc/init/marathon.conf
+    regexp='^exec /usr/local/bin/marathon'
+    line='exec /usr/local/bin/marathon --task_launch_timeout 300000'

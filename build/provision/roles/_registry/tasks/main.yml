@@ -1,0 +1,7 @@
+# Hosts with Docker including a private Docker registry running locally.
+---
+- name: Configure private Docker registry service
+  copy: >
+    src=docker-registry.conf
+    dest=/etc/init/docker-registry.conf
+    mode=0644

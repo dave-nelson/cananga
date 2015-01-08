@@ -1,0 +1,69 @@
+{
+	"variables": {
+		"region": "ap-southeast-2",
+		"instance_type": "t2.micro",
+		"source_ami": null,
+		"provision_role": null,
+		"version": "{{timestamp}}",
+		"datestr": "{{isotime \"2006-01-02T15:04:05Z\"}}"
+	},
+	"builders": [
+		{
+			"type": "amazon-ebs",
+			"region": "{{user `region`}}",
+			"instance_type": "{{user `instance_type`}}",
+			"source_ami": "{{user `source_ami`}}",
+			"ssh_username": "ubuntu",
+			"ssh_timeout": "5m",
+			"ami_name": "{{user `provision_role`}}-{{user `version`}}",
+			"tags": {
+				"role": "{{user `provision_role`}}",
+				"created-at": "{{user `datestr`}}"
+			}
+
+		}
+	],
+	"provisioners": [
+		{
+			"type": "shell",
+			"inline": [
+				"sudo apt-add-repository --yes ppa:rquillo/ansible",
+				"sudo apt-get update",
+				"sudo apt-get install --yes ansible"
+			]
+		},
+		{
+			"type": "file",
+			"source": "provision",
+			"destination": "/tmp/packer-provisioner-ansible-local"
+		},
+		{
+			"type": "ansible-local",
+			"playbook_file": "provision/playbook.yml",
+			"inventory_file": "provision/inventory_local",
+			"extra_arguments": [
+				"-e provision_role={{user `provision_role`}}"
+			]
+		},
+		{
+			"type": "shell",
+			"inline": [
+				"sudo rm -rf /tmp/packer-provisioner-ansible-local"
+			]
+
+		},
+		{
+			"type": "file",
+			"source": "test",
+			"destination": "/tmp/packer-provisioner-ansible-local"
+		},
+		{
+			"type": "ansible-local",
+			"playbook_file": "test/playbook.yml",
+			"inventory_file": "test/inventory_local",
+			"extra_arguments": [
+				"-e provision_role={{user `provision_role`}}"
+			]
+		}
+	]
+}

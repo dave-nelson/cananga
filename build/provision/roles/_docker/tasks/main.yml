@@ -1,0 +1,16 @@
+# Install Docker (docker.io version)
+# https://docs.docker.com/installation/ubuntulinux/
+---
+- name: Add the docker.io key for Apt
+  apt_key: >
+    keyserver=hkp://keyserver.ubuntu.com:80 
+    id=36A1D7869245C8950F966E92D8576A8BA88D21E9
+
+- name: Add the docker.io Apt repository to apt/sources
+  lineinfile: >
+    dest=/etc/apt/sources.list.d/docker.list 
+    create=yes 
+    line='deb https://get.docker.com/ubuntu docker main' 
+
+- name: Install Docker (lxc-docker from docker.io)
+  apt: name=lxc-docker update_cache=yes

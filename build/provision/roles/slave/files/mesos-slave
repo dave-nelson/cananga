@@ -1,0 +1,2 @@
+# MASTER=`cat /etc/mesos/zk`
+MASTER="zk://$( user-data-value -k MASTER_IP ):2181/mesos"

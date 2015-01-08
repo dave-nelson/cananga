@@ -1,0 +1,5 @@
+---
+dependencies:
+  - { role: _registry }
+  - { role: _user_data }
+  - { role: _volumes }

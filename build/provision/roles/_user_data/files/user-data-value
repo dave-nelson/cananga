@@ -1,0 +1,46 @@
+#!/bin/bash
+
+function usage {
+    echo "Print a value from the EC2 instance user data to STDOUT."
+    echo "Assumes the user data contains lines of 'key=value' pairs"
+    echo ""
+    echo "Usage: $0 -k key [-d default]"
+    echo "    key     : The key from which to get a value"
+    echo "    default : The default value if the key is not found"
+    echo "              If not set the default is an empty string"
+}
+
+key=""
+default=""
+
+OPTIND=1
+while getopts "k:d:h" opt; do
+    case $opt in
+        k)
+            key=$OPTARG
+            ;;
+        d)
+            default=$OPTARG
+            ;;
+        h)
+            usage ; exit 0
+            ;;
+        \?)
+            echo "Invalid option: -$OPTARG" >&2
+            usage ; exit 1
+            ;;
+    esac
+done
+
+if [ -z "$key" ]; then
+    echo "Key name not specified" >&2
+    usage ; exit 1
+fi
+
+value=$( curl http://169.254.169.254/latest/user-data 2>/dev/null | \
+    grep -Po "^${key}\s*:\s*\K(.*)" - )
+if [ $? -ne 0 ]; then
+    value="$default"
+fi
+echo "$value"
+exit 0

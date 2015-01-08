@@ -1,0 +1,25 @@
+# Configure instance as a Mesos cluster slave, including Docker options.
+---
+- name: Mesos slave script (used to find the master)
+  copy: >
+    src=mesos-slave
+    dest=/etc/default/mesos-slave
+    mode=0644
+
+- name: Disable the master daemon on this host
+  lineinfile: >
+    dest=/etc/init/mesos-master.override
+    create=yes
+    line='manual'
+    
+- name: Set Docker as the default containerizer
+  lineinfile: >
+    dest=/etc/mesos-slave/containerizers
+    create=yes
+    line='docker,mesos'
+
+- name: Set slave executor registration timeout
+  lineinfile: >
+    dest=/etc/mesos-slave/executor_registration_timeout
+    create=yes
+    line='5mins'

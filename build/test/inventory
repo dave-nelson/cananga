@@ -1,0 +1,2 @@
+[provision_instance]
+"{{ target_host }}"

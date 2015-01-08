@@ -1,0 +1,16 @@
+# Tests: slave role
+---
+- name: Test that the mesos-slave service has been configured
+  command: service mesos-slave status
+
+- name: Test that the mesos-master service auto-start has been disabled
+  command: test -f /etc/init/mesos-master.override
+
+- name: Test that the docker.io version of Docker is installed
+  command: dpkg-query --show lxc-docker
+
+- name: Test that the private registry service has been configured
+  command: service docker-registry status
+
+- name: Test that the user-data-value utility is available
+  command: which user-data-value
