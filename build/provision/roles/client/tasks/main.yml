@@ -1,0 +1,13 @@
+# Cluster client configuration
+---
+- name: Get latest jq from upstream
+  get_url: >
+    url=http://stedolan.github.io/jq/download/linux64/jq
+    dest=/usr/local/bin/jq
+    mode=0755
+
+- name: Marathon find-app script
+  copy: >
+    src=find-app
+    dest=/usr/local/bin/find-app
+    mode=0755

@@ -1,0 +1,41 @@
+#!/bin/bash
+
+set -e
+
+function usage {
+    echo "Find a Marathon app by name"
+    echo "Usage: $0 -n app-name"
+    echo "    app-name : Name of Marathon application"
+}
+
+name=""
+
+# Optional arguments
+OPTIND=1
+while getopts "n:h" opt; do
+    case $opt in
+        n)
+            name=$OPTARG
+            ;;
+        h)
+            usage ; exit 0
+            ;;
+        \?)
+            echo "Invalid option: -$OPTARG" >&2
+            usage ; exit 1
+            ;;
+    esac
+done
+
+if [ -z "$name" ]; then
+    echo "Application name not specified" >&2
+    usage ; exit 1
+fi
+
+host=$(curl "http://$(user-data-value -k MASTER_IP):8080/v2/apps/$name" \
+        2>/dev/null | jq -e '.app.tasks[0].host' | tr -d '"')
+port=$(curl "http://$(user-data-value -k MASTER_IP):8080/v2/apps/$name" \
+        2>/dev/null | jq -e '.app.tasks[0].ports[0]')
+echo "$host:$port"
+
+exit 0

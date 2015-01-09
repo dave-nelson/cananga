@@ -8,3 +8,6 @@
 
 - name: Test that the user-data-value utility is available
   command: which user-data-value
+
+- name: Test that the Marathon find-app utility is available
+  command: which find-app
