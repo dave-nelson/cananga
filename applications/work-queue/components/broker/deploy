@@ -1,0 +1,37 @@
+#!/bin/bash
+
+function usage {
+    echo "Deploy broker application to cluster."
+    echo "Usage: $0 -t tag"
+    echo "    tag : Docker image tag"
+}
+
+tag=""
+
+# Optional arguments
+OPTIND=1
+while getopts "m:t:h" opt; do
+    case $opt in
+        t)
+            tag=$OPTARG
+            ;;
+        h)
+            usage ; exit 0
+            ;;
+        \?)
+            echo "Invalid option: -$OPTARG" >&2
+            usage ; exit 1
+            ;;
+    esac
+done
+shift $(($OPTIND - 1))
+
+if [ -z "$tag" ]; then
+    echo "Docker tag not specified" >&2
+    usage ; exit 1
+fi
+
+
+sed "s/{{TAGNAME}}/$tag/" app.json | \
+    curl -X POST -H "Content-Type: application/json" \
+    "http://$(user-data-value -k MASTER_IP):8080/v2/apps" -d@-

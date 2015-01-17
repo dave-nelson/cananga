@@ -1,0 +1,71 @@
+#!/bin/bash
+
+set -e
+
+function usage {
+    echo "Run queue worker locally"
+    echo "Usage: $0 -t tag [-u broker_url | -b broker_name] -q queue"
+    echo "    tag         : Docker image tag"
+    echo "    broker_url  : Connect to a broker running at the given url"
+    echo "                  e.g. 'amqp://hostname:5672'"
+    echo "    broker_name : Discover a broker of the given name in a Marathon cluster"
+    echo "    queue       : Name of an AMQP queue to consume"
+    echo "Unless otherwise specified the default broker is 'amqp://172.17.42.1:5672'"
+}
+
+tag=""
+broker_name=""
+queue=""
+cmd=""
+options=""
+# 172.17.42.1 is how a Docker container sees localhost
+amqp="amqp://172.17.42.1:5672"
+
+OPTIND=1
+while getopts "t:u:b:q:h" opt; do
+    case $opt in
+        t)
+            tag=$OPTARG
+            ;;
+        u)
+            amqp=$OPTARG
+            ;;
+        b)
+            broker_name=$OPTARG
+            ;;
+        q)
+            queue=$OPTARG
+            ;;
+        h)
+            usage ; exit 0
+            ;;
+        \?)
+            echo "Invalid option: -$OPTARG" >&2
+            usage ; exit 1
+            ;;
+    esac
+done
+shift $(($OPTIND - 1))
+
+if [ -z "$tag" ]; then
+    echo "Docker tag not specified" >&2
+    usage ; exit 1
+fi
+
+if [ -z "$queue" ]; then
+    echo "No queue specified" >&2
+    usage ; exit 1
+fi
+
+if [ ! -z "$broker_name" ]; then
+    broker=$( find-app -n "$broker_name" )
+    if [ $? -eq 0 ]; then
+        amqp="amqp://${broker}"
+    else
+        echo "Could not find broker '$broker_name' in the cluster" >&2
+        exit 1
+    fi
+fi
+
+docker run -i -t -v "/tmp:/tmp" "$tag" bash -c \
+        "/usr/local/bin/cluster-worker -u $amqp -q $queue /usr/local/bin/process-message /tmp"

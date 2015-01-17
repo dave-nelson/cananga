@@ -1,0 +1,71 @@
+#!/bin/bash
+
+# Submit a file containing messages to a broker.
+
+# It is assumed that the file consists of messages, one per line.  Each line 
+# will be sent to the broker as a separate message.
+
+# If no file is provided on the command-line, messages will be read from STDIN.
+
+set -e
+
+function usage {
+    echo "Send a file containing messages to a broker"
+    echo "Usage: $0 [-u broker_url | -b broker_name] -q queue [file]"
+    echo "    broker_url  : Connect to a broker running at the given url"
+    echo "                  e.g. 'amqp://hostname:5672'"
+    echo "    broker_name : Discover a broker of the given name in a Marathon cluster"
+    echo "    queue       : Name of an AMQP queue to consume"
+    echo "    file        : File containing messages"
+    echo "If no file is specified messages will be read from STDIN."
+    echo "Unless otherwise specified the default broker is 'amqp://localhost:5672'"
+}
+
+broker_name=""
+queue=""
+cmd=""
+options=""
+amqp="amqp://localhost:5672"
+
+OPTIND=1
+while getopts "u:b:q:h" opt; do
+    case $opt in
+        u)
+            amqp=$OPTARG
+            ;;
+        b)
+            broker_name=$OPTARG
+            ;;
+        q)
+            queue=$OPTARG
+            ;;
+        h)
+            usage ; exit 0
+            ;;
+        \?)
+            echo "Invalid option: -$OPTARG" >&2
+            usage ; exit 1
+            ;;
+    esac
+done
+shift $(($OPTIND - 1))
+
+if [ -z "$queue" ]; then
+    echo "No queue specified" >&2
+    usage ; exit 1
+fi
+
+if [ ! -z "$broker_name" ]; then
+    broker=$( find-app -n "$broker_name" )
+    if [ $? -eq 0 ]; then
+        amqp="amqp://${broker}"
+    else
+        echo "Could not find broker '$broker_name' in the cluster" >&2
+        exit 1
+    fi
+fi
+
+amqp-declare-queue -u "$amqp" -q "$queue"
+while read line ; do
+    echo "$line" | amqp-publish -u "amqp://$amqp" -r "$queue"
+done < "${1:-/proc/${$}/fd/0}"

@@ -1,0 +1,20 @@
+{
+  "container": {
+    "type": "DOCKER",
+    "docker": {
+      "image": "localhost:5000/{{TAGNAME}}"
+    },
+    "volumes": [
+      {
+        "containerPath": "/tmp",
+        "hostPath": "/tmp",
+        "mode": "RW"
+      }
+    ]
+  },
+  "id": "worker",
+  "instances": 1,
+  "cpus": 0.1,
+  "mem": 64,
+  "cmd": "/usr/local/bin/cluster-worker -b {{BROKER}} -q {{QUEUE}} /usr/local/bin/process-message /tmp"
+}

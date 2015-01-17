@@ -1,0 +1,82 @@
+#!/bin/bash
+
+# Cluster worker script that processes messages from an AMQP queue.
+
+# This script uses the standard AMQP command-line tools to consume and process 
+# messages from a queue.  Messages are passed to a program/utility that is 
+# expected to:
+# - Read the body of the message from STDIN
+# - Exit 0 on success, non-0 on failure
+
+# The cluster-worker can connect to a specific AMQP broker or can use 
+# Marathon's discovery mechanisms to find a broker in a cluster.  The default 
+# is to look for a broker running on localhost.
+
+set -e
+
+function usage {
+    echo "Execute a worker application that processes messages"
+    echo "Usage: $0 [-u broker_url | -b broker_name] -q queue command [options]"
+    echo "    broker_url  : Connect to a broker running at the given url"
+    echo "                  e.g. 'amqp://hostname:5672'"
+    echo "    broker_name : Discover a broker of the given name in a Marathon cluster"
+    echo "    queue       : Name of an AMQP queue to consume"
+    echo "    command     : command to execute"
+    echo "    options     : further options to pass to command"
+    echo "Unless otherwise specified the default broker is 'amqp://localhost:5672'"
+}
+
+broker_name=""
+queue=""
+cmd=""
+options=""
+amqp="amqp://localhost:5672"
+
+OPTIND=1
+while getopts "u:b:q:h" opt; do
+    case $opt in
+        u)
+            amqp=$OPTARG
+            ;;
+        b)
+            broker_name=$OPTARG
+            ;;
+        q)
+            queue=$OPTARG
+            ;;
+        h)
+            usage ; exit 0
+            ;;
+        \?)
+            echo "Invalid option: -$OPTARG" >&2
+            usage ; exit 1
+            ;;
+    esac
+done
+shift $(($OPTIND - 1))
+
+if [ -z "$queue" ]; then
+    echo "No queue specified" >&2
+    usage ; exit 1
+fi
+
+if [ "$#" -lt 1 ]; then
+    echo "Required argument: command to execute" >&2
+    usage ; exit 1
+fi
+
+cmd="$1" ; shift
+options="$@"
+
+if [ ! -z "$broker_name" ]; then
+    broker=$( find-app -n "$broker_name" )
+    if [ $? -eq 0 ]; then
+        amqp="amqp://${broker}"
+    else
+        echo "Could not find broker '$broker_name' in the cluster" >&2
+        exit 1
+    fi
+fi
+
+amqp-declare-queue -u "$amqp" -q "$queue"
+amqp-consume -u "$amqp" -q "$queue" $cmd $options

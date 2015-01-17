@@ -1,0 +1,57 @@
+#!/bin/bash
+
+function usage {
+    echo "Deploy Worker application to cluster."
+    echo "Usage: $0 -t tag -b broker_name -q queue"
+    echo "    tag   : Docker image tag"
+    echo "    broker_name : Discover a broker of the given name in a Marathon cluster"
+    echo "    queue : Name of an AMQP queue to consume"
+}
+
+tag=""
+broker_name=""
+queue=""
+
+OPTIND=1
+while getopts "t:b:q:h" opt; do
+    case $opt in
+        t)
+            tag=$OPTARG
+            ;;
+        b)
+            broker_name=$OPTARG
+            ;;
+        q)
+            queue=$OPTARG
+            ;;
+        h)
+            usage ; exit 0
+            ;;
+        \?)
+            echo "Invalid option: -$OPTARG" >&2
+            usage ; exit 1
+            ;;
+    esac
+done
+shift $(($OPTIND - 1))
+
+if [ -z "$tag" ]; then
+    echo "Docker tag not specified" >&2
+    usage ; exit 1
+fi
+
+if [ -z "$broker_name" ]; then
+    echo "Broker name not specified" >&2
+    usage ; exit 1
+fi
+
+if [ -z "$queue" ]; then
+    echo "No queue specified" >&2
+    usage ; exit 1
+fi
+
+sed "s/{{TAGNAME}}/$tag/" app.json   | \
+    sed "s/{{BROKER}}/$broker_name/" | \
+    sed "s/{{QUEUE}}/$queue/"        | \
+    curl -X POST -H "Content-Type: application/json" \
+    "http://$(user-data-value -k MASTER_IP):8080/v2/apps" -d@-

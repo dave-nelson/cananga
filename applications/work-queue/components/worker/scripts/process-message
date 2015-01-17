@@ -1,0 +1,15 @@
+#!/bin/bash
+
+# Trivial example of a program to consume queue messages.
+
+dest_dir='./'
+if [ ! -z "$1" ]; then
+    dest_dir="$1"
+fi
+filename="$dest_dir/$( cat /proc/sys/kernel/random/uuid )"
+
+while read line; do
+    echo "$line" >> "$filename"
+done
+
+exit 0

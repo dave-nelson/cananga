@@ -1,0 +1,58 @@
+#!/bin/bash
+
+# Build a Docker image for the worker component and push it to the private 
+# registry.
+
+set -e
+
+function usage {
+    echo "Build a Docker image for the worker component"
+    echo "Usage: $0 -t tag"
+    echo "    tag : Tag for Docker image (e.g. 'worker:v1')"
+}
+
+tag=""
+
+OPTIND=1
+while getopts "t:h" opt; do
+    case $opt in
+        t)
+            tag=$OPTARG
+            ;;
+        h)
+            usage ; exit 0
+            ;;
+        \?)
+            echo "Invalid option: -$OPTARG" >&2
+            usage ; exit 1
+            ;;
+    esac
+done
+shift $((OPTIND-1))
+
+if [ -z "$tag" ]; then
+    echo "Docker tag not specified" >&2
+    usage ; exit 1
+fi
+
+# Get required utilities (if not yet existent)
+for util_name in 'find-app' 'user-data-value'; do 
+    if [ ! -f "./scripts/$util_name" ]; then
+        if [ -f "/usr/local/bin/$util_name" ]; then
+            cp "/usr/local/bin/$util_name" './scripts/'
+        else
+            echo "'$util_name' script not found!" >&2
+            exit 1
+        fi
+    fi
+done
+
+if [ ! -f './scripts/jq' ]; then
+    wget 'http://stedolan.github.io/jq/download/linux64/jq' -O './scripts/jq'
+    chmod a+x './scripts/jq'
+fi
+
+# Build, tag and push the image
+docker build -t "$tag" ./
+docker tag "$tag" "localhost:5000/$tag"
+docker push "localhost:5000/$tag"
