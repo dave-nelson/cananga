@@ -1,2 +1,13 @@
 # Manage EC2 ephemeral volumes
 ---
+- name: Remove mount entry for /mnt from /etc/fstab, if present
+  shell: sed -i '/\s\/mnt\s/d' /etc/fstab
+
+- name: Install logical volume management (LVM)
+  apt: name=lvm2 update_cache=yes cache_valid_time=60
+
+- name: Install script to create logical volume from ephemeral drives
+  copy: src=mount-ephemeral dest=/usr/local/sbin/mount-ephemeral mode=0755
+
+- name: Create LVM volume on boot
+  copy: src=ephemeral.conf dest=/etc/init mode=0644

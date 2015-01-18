@@ -14,3 +14,6 @@
 
 - name: Test that the user-data-value utility is available
   command: which user-data-value
+
+- name: Test that ephemeral drives will be mounted on boot, if applicable
+  command: service ephemeral status

@@ -1,0 +1,48 @@
+#!/bin/bash
+
+# Join ephemeral drives into a LVM volume group, format and mount them.
+
+# This script depends on the user-data values "TMP_VOLUMES" and
+# "TMP_MOUNTPOINT" to be set, otherwise no action will be performed.
+
+set -e
+
+letters=$( user-data-value -k TMP_VOLUMES | sed -e 's/\(.\)/\1\n/g' )
+mountpoint=$( user-data-value -k TMP_MOUNTPOINT )
+
+if [ -z "$letters" -o -z "$mountpoint" ]; then
+    # No temporary volumes required: quit
+    exit 0
+fi
+
+# Find devices that actually exist
+devices=()
+for letter in $letters; do
+    device="/dev/xvd${letter}"
+    if [ -b $device ]; then
+        devices+=($device)
+    fi
+done
+
+# If devices available then format & mount them
+if [ ${#devices[@]} \> 0 ]; then
+    mount_dev=$devices  # Default: mount first device
+    if [ ${#devices[@]} \> 1 ]; then
+        # Remove existing volume group
+        if [ -d /dev/cananga_volgroup ]; then
+            lvremove -f /dev/cananga_volgroup/cananga_vol
+            vgremove cananga_volgroup 
+        fi
+        # Create logical volumes
+        for device in ${devices[@]}; do
+            pvcreate $device
+        done
+        # Create volume group
+        vgcreate cananga_volgroup ${devices[@]}
+        lvcreate --name cananga_vol --extents 100%FREE cananga_volgroup
+        # Set the mount device to be the volume group
+        mount_dev=/dev/cananga_volgroup/cananga_vol
+    fi
+    mkfs.ext3 $mount_dev
+    mount $mount_dev "$mountpoint"
+fi
